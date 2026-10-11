@@ -5,6 +5,10 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
+import { parseArgs } from "./args.mjs";
+import { CACHE_DIR } from "./paths.mjs";
+
+export { parseArgs, CACHE_DIR };
 
 // The three viewports every extraction and QA step must cover.
 export const VIEWPORTS = {
@@ -79,7 +83,6 @@ const CONTEXT_OPTS = {
 const CACHEABLE = new Set(["image", "font", "stylesheet", "script"]);
 const MAX_ENTRY = 4 * 1024 * 1024; // 4 MB per resource
 const MAX_TOTAL = 256 * 1024 * 1024; // 256 MB overall (memory layer)
-export const CACHE_DIR = "docs/research/.cache";
 const CACHE_TTL_MS = (parseFloat(process.env.SITE_CLONER_CACHE_TTL_H) || 24) * 3600 * 1000;
 const _cache = new Map(); // url -> { body: Buffer, contentType: string }
 let _cacheBytes = 0;
@@ -611,25 +614,6 @@ export async function shootSectionsFromFullPage(page, sections, { fullPagePath =
     }
   }
   return { failed };
-}
-
-// Tiny CLI arg parser: --key value / --flag  ->  { _: [positionals], key: value, flag: true }
-// A repeated key collects into an array (--selector a --selector b -> ["a","b"]).
-export function parseArgs(argv) {
-  const out = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith("--")) {
-      const key = a.slice(2);
-      const next = argv[i + 1];
-      const val = next !== undefined && !next.startsWith("--") ? (i++, next) : true;
-      if (key in out) out[key] = [].concat(out[key], val);
-      else out[key] = val;
-    } else {
-      out._.push(a);
-    }
-  }
-  return out;
 }
 
 // Normalise a possibly-repeated arg into an array. `--selector x` and

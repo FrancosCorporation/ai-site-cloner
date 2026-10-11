@@ -160,6 +160,10 @@ Platform migration of sites you own · recovering lost source code · learning h
 
 **Not for** phishing, impersonation, or passing off someone else's design as your own. Check a site's terms before cloning it. The example clones in this repo (plausible.io, uploadthing.com) are technical demonstrations — don't republish anyone's brand.
 
+### Network access
+
+The Node.js sitemap, stylesheet, and asset downloaders accept HTTP/HTTPS, validate DNS results and each redirect, reject private/reserved addresses by default, and cap response sizes (5 MiB for sitemaps/stylesheets, 64 MiB per asset). An explicitly supplied localhost, local network name, or private IP is allowed for local development; a public-looking DNS name that resolves privately is still rejected. Chromium page navigation and its normal subresource loading remain part of extraction.
+
 ## License
 
 MIT

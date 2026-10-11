@@ -125,7 +125,12 @@ if (args.rename) {
     if (existsSync(respPath)) {
       const resp = JSON.parse(readFileSync(respPath, "utf8"));
       let hits = 0;
-      for (const s of resp.sections || []) if (s.name === from) (s.name = to), hits++;
+      for (const s of resp.sections || []) {
+        if (s.name === from) {
+          s.name = to;
+          hits++;
+        }
+      }
       if (hits) {
         writeFileSync(respPath, JSON.stringify(resp, null, 2) + "\n");
         console.log(`  ✓ responsive.json: "${from}" → "${to}"`);
@@ -214,7 +219,7 @@ const [signatures, walks, tokens, css, assetsFound, utilityCss] = await Promise.
   })(),
   walkSections(pc, selectors, { depth }),
   doSiteFiles ? collectTokens(pc) : null,
-  doSiteFiles ? collectCss(pc) : null,
+  doSiteFiles ? collectCss(pc, { allowPrivateOrigins: [new URL(url).origin] }) : null,
   collectAssets(pc),
   detectUtilityCss(pc),
 ]);
@@ -291,7 +296,10 @@ const jobs = [];
 
 if (doDownload) {
   jobs.push(
-    downloadAssets(assetsFound, { pool: 8 }).then((manifest) => {
+    downloadAssets(assetsFound, {
+      pool: 8,
+      allowPrivateOrigins: [new URL(url).origin],
+    }).then((manifest) => {
       writeJson(`docs/research/${host}/assets.json`, { ...meta, ...assetsFound, downloads: manifest });
       const ok = manifest.filter((m) => m.ok).length;
       const cached = manifest.filter((m) => m.cached).length;

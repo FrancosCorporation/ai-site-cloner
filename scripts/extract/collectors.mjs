@@ -4,6 +4,7 @@
 // Playwright page that has already been gotoAndSettle'd + autoScroll'ed.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { fetchPublic } from "../safe-http.mjs";
 
 // ---------------------------------------------------------------------------
 // Design tokens (colors, fonts, css vars, keyframes, global behaviors)
@@ -176,7 +177,7 @@ const STATE_RE = /:(hover|focus|focus-visible|focus-within|active|checked|disabl
 
 // Collect every stylesheet's text (fetching cross-origin ones directly), parse
 // out interactive-state rules, real breakpoints, and keyframe names.
-export async function collectCss(page, { selector = null } = {}) {
+export async function collectCss(page, { selector = null, allowPrivateOrigins = [] } = {}) {
   const collected = await page.evaluate(() => {
     const sheets = [];
     for (const sheet of document.styleSheets) {
@@ -199,7 +200,12 @@ export async function collectCss(page, { selector = null } = {}) {
       .filter((s) => s.blocked && s.href)
       .map(async (s) => {
         try {
-          const res = await fetch(s.href, { signal: AbortSignal.timeout(20000), headers: { "User-Agent": "Mozilla/5.0" } });
+          const res = await fetchPublic(s.href, {
+            timeoutMs: 20000,
+            maxBytes: 5 * 1024 * 1024,
+            headers: { "User-Agent": "Mozilla/5.0" },
+            allowPrivateOrigins,
+          });
           if (res.ok) {
             s.text = await res.text();
             s.blocked = false;
@@ -371,7 +377,7 @@ export async function collectAssets(page) {
 // (not batch barriers — one slow file no longer stalls three fast ones) and a
 // disk short-circuit: a file that already exists locally is not re-fetched, so
 // multi-page runs and resumed runs only pay for what's new.
-export async function downloadAssets(found, { pool = 8, skipExisting = true } = {}) {
+export async function downloadAssets(found, { pool = 8, skipExisting = true, allowPrivateOrigins = [] } = {}) {
   const manifest = [];
   const byRemote = new Map(); // remote url -> manifest entry (dedupe)
   const usedPaths = new Map(); // local path -> remote url (collision detect)
@@ -399,7 +405,12 @@ export async function downloadAssets(found, { pool = 8, skipExisting = true } = 
       return;
     }
     try {
-      const res = await fetch(remote, { signal: AbortSignal.timeout(30000), headers: { "User-Agent": "Mozilla/5.0" } });
+      const res = await fetchPublic(remote, {
+        timeoutMs: 30000,
+        maxBytes: 64 * 1024 * 1024,
+        headers: { "User-Agent": "Mozilla/5.0" },
+        allowPrivateOrigins,
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       // extension-less URLs (common for favicons/OG): derive extension from content-type
       if (path.endsWith(".bin")) {

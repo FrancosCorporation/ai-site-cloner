@@ -27,7 +27,7 @@ const { browser, page } = await launchPage();
 await gotoAndSettle(page, url);
 await autoScroll(page);
 
-const css = await collectCss(page, { selector: args.selector || null });
+const css = await collectCss(page, { selector: args.selector || null, allowPrivateOrigins: [new URL(url).origin] });
 await browser.close();
 
 // The counts drive the stdout summary only — they're derivable from the JSON,

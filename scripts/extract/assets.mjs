@@ -20,9 +20,12 @@ await gotoAndSettle(page, url);
 await autoScroll(page); // trigger lazy loading
 
 const found = await collectAssets(page);
+const allowPrivateOrigins = [new URL(url).origin];
 await browser.close(); // downloads go over plain fetch — no browser needed
 
-const manifest = doDownload ? await downloadAssets(found, { pool: 8 }) : [];
+const manifest = doDownload
+  ? await downloadAssets(found, { pool: 8, allowPrivateOrigins })
+  : [];
 
 writeJson(`docs/research/${hostOf(url)}/assets.json`, {
   url,

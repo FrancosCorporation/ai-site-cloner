@@ -16,7 +16,8 @@
 //   node scripts/manifest.mjs resume   # one-screen digest: stage table + the
 //                                      # exact next commands and file paths
 import { existsSync, rmSync, readFileSync } from "node:fs";
-import { parseArgs, CACHE_DIR } from "./lib.mjs";
+import { parseArgs } from "./args.mjs";
+import { CACHE_DIR } from "./paths.mjs";
 import { MANIFEST_FILE as FILE, STAGES, loadManifest, saveManifest as save, findPage as findPageIn } from "./manifest-lib.mjs";
 
 const [cmd, ...rest] = process.argv.slice(2);

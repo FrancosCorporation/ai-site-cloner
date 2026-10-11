@@ -135,7 +135,10 @@ export function compactWalk(tree) {
     const passDown = { ...(parentStyles || {}) };
     for (const prop of INHERITED_PROPS) if (src[prop] !== undefined) passDown[prop] = src[prop];
 
-    const { styles: _drop, children, ...rest } = node;
+    const rest = { ...node };
+    const { children } = rest;
+    delete rest.styles;
+    delete rest.children;
     const out = { ...rest };
     if (Object.keys(pruned).length) out.style = keyFor(pruned);
     if (children) out.children = children.map((c) => compactNode(c, passDown));

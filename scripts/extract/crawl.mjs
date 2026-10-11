@@ -3,6 +3,7 @@
 // Usage: node scripts/extract/crawl.mjs <url> [--max 25]
 // Output: docs/research/<host>/sitemap.json
 import { launchPage, gotoAndSettle, hostOf, routeOf, writeJson, parseArgs } from "../lib.mjs";
+import { fetchPublic } from "../safe-http.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const startUrl = args._[0];
@@ -22,9 +23,20 @@ const sameSite = (a, b) => {
     return false;
   }
 };
+const isSameSiteSitemap = (url) => {
+  try {
+    return sameSite(url, origin) && new URL(url).pathname.toLowerCase().endsWith(".xml");
+  } catch {
+    return false;
+  }
+};
 
 const fetchLocs = async (u) => {
-  const res = await fetch(u, { signal: AbortSignal.timeout(10000) });
+  const res = await fetchPublic(u, {
+    timeoutMs: 10000,
+    maxBytes: 5 * 1024 * 1024,
+    allowPrivateOrigins: [origin],
+  });
   if (!res.ok) return [];
   return [...(await res.text()).matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map((m) => m[1].trim());
 };
@@ -34,7 +46,7 @@ const collectSitemap = async () => {
   try {
     const locs = await fetchLocs(`${origin}/sitemap.xml`);
     // sitemap index → fetch child sitemaps (first 5) in parallel
-    const children = locs.filter((u) => u.endsWith(".xml")).slice(0, 5);
+    const children = locs.filter(isSameSiteSitemap).slice(0, 5);
     const childLocs = await Promise.all(
       children.map((child) => fetchLocs(child).catch(() => [] /* skip broken child sitemap */))
     );
